@@ -1,4 +1,8 @@
 #include "Physics.h"
+#include "Dust.h"
+#include "World.h"
+#include <random>
+#include <iostream>
 
 double dot(const Point& lhs, const Point& rhs) {
     return lhs.x * rhs.x + lhs.y * rhs.y;
@@ -11,33 +15,40 @@ void Physics::setWorldBox(const Point& topLeft, const Point& bottomRight) {
     this->bottomRight = bottomRight;
 }
 
-void Physics::update(std::vector<Ball>& balls, const size_t ticks) const {
+void Physics::update(std::vector<Ball>& balls, std::vector<Dust>& dusts, const size_t ticks) const {
 
     for (size_t i = 0; i < ticks; ++i) {
         move(balls);
+        move(dusts);
         collideWithBox(balls);
-        collideBalls(balls);
+        collideBalls(balls, dusts);
     }
 }
 
-void Physics::collideBalls(std::vector<Ball>& balls) const {
+void Physics::collideBalls(std::vector<Ball>& balls, std::vector<Dust>& dusts) const {
     for (auto a = balls.begin(); a != balls.end(); ++a) {
-        for (auto b = std::next(a); b != balls.end(); ++b) {
-            const double distanceBetweenCenters2 =
-                distance2(a->getCenter(), b->getCenter());
-            const double collisionDistance = a->getRadius() + b->getRadius();
-            const double collisionDistance2 =
-                collisionDistance * collisionDistance;
+            for (auto b = std::next(a); b != balls.end(); ++b) {
+                if (!(a->isCollidable() && b->isCollidable()))
+                {continue;}
+                
+                const double distanceBetweenCenters2 =
+                    distance2(a->getCenter(), b->getCenter());
+                const double collisionDistance = a->getRadius() + b->getRadius();
+                const double collisionDistance2 =
+                    collisionDistance * collisionDistance;
 
-            if (distanceBetweenCenters2 < collisionDistance2) {
-                processCollision(*a, *b, distanceBetweenCenters2);
-            }
+                if ((distanceBetweenCenters2 < collisionDistance2)) {
+                    processCollision(*a, *b, dusts, distanceBetweenCenters2);
+                }
         }
     }
 }
 
+
 void Physics::collideWithBox(std::vector<Ball>& balls) const {
     for (Ball& ball : balls) {
+        if (!ball.isCollidable())
+        {continue;}
         const Point p = ball.getCenter();
         const double r = ball.getRadius();
         // определяет, находится ли v в диапазоне (lo, hi) (не включая границы)
@@ -57,20 +68,13 @@ void Physics::collideWithBox(std::vector<Ball>& balls) const {
     }
 }
 
-void Physics::move(std::vector<Ball>& balls) const {
-    for (Ball& ball : balls) {
-        Point newPos =
-            ball.getCenter() + ball.getVelocity().vector() * timePerTick;
-        ball.setCenter(newPos);
-    }
-}
-
-void Physics::processCollision(Ball& a, Ball& b,
+void Physics::processCollision(Ball& a, Ball& b, std::vector<Dust>& dusts,
                                double distanceBetweenCenters2) const {
     // нормированный вектор столкновения
     const Point normal =
         (b.getCenter() - a.getCenter()) / std::sqrt(distanceBetweenCenters2);
-
+    const Point middle = 
+        ((b.getCenter() + a.getCenter()) / 2);
     // получаем скорость в векторном виде
     const Point aV = a.getVelocity().vector();
     const Point bV = b.getVelocity().vector();
@@ -79,7 +83,36 @@ void Physics::processCollision(Ball& a, Ball& b,
     const double p =
         2 * (dot(aV, normal) - dot(bV, normal)) / (a.getMass() + b.getMass());
 
+    std::vector<Dust> tempDust = randomDusts(middle);
+    for (Dust d : tempDust){
+        dusts.push_back(d);
+    }
+
     // задаем новые скорости мячей после столкновения
     a.setVelocity(Velocity(aV - normal * p * a.getMass()));
     b.setVelocity(Velocity(bV + normal * p * b.getMass()));
+}
+
+void Physics::move(std::vector<Ball>& balls) const {
+    for (Ball& ball : balls) {
+        Point newPos =
+            ball.getCenter() + ball.getVelocity().vector() * timePerTick;
+        ball.setCenter(newPos);
+    }
+}
+
+void Physics::move(std::vector<Dust>& dusts) const{
+    if (dusts.empty())
+    {return;}
+    for (size_t i = 0; i < dusts.size(); i++){
+
+        if (dusts[i].getTimeLife() < 0){
+            dusts.erase(dusts.begin() + i);   
+            continue;
+        }
+        dusts[i].setTimeLife(dusts[i].getTimeLife() - 1);
+        Point newPos = 
+            dusts[i].getCenter() + dusts[i].getVelocity().vector() * timePerTick;
+        dusts[i].setCenter(newPos);
+    }
 }

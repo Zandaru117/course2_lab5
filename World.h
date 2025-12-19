@@ -2,6 +2,7 @@
 #include "Ball.hpp"
 #include "Physics.h"
 #include <vector>
+#include <random>
 
 class Painter;
 
@@ -19,7 +20,10 @@ class World {
     Physics physics;
     // Контейнер с шарами
     std::vector<Ball> balls;
+    std::vector<Dust> dusts_;
     // Длина отрезка времени, который не был
     // учтен при прошлой симуляции. См. реализацию update
     double restTime = 0.;
+    
 };
+std::vector<Dust> randomDusts(const Point& center);

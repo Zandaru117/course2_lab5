@@ -1,6 +1,8 @@
 #include "World.h"
 #include "Painter.h"
 #include <fstream>
+#include "Dust.h"
+#include <iostream>
 
 // Длительность одного тика симуляции.
 // Подробнее см. update()
@@ -32,43 +34,42 @@ World::World(const std::string& worldFilePath) {
      * как и (red, green, blue). Опять же, можно упростить
      * этот код, научившись читать сразу Point, Color...
      */
-    double x;
-    double y;
-    double vx;
-    double vy;
-    double radius;
 
-    double red;
-    double green;
-    double blue;
 
-    bool isCollidable;
+    Ball ball;
 
     // Здесь не хватает обработки ошибок, но на текущем
     // уровне прохождения курса нас это устраивает
     while (stream.peek(), stream.good()) {
+
+
+        stream >> ball;
+        balls.push_back(ball);
+
         // Читаем координаты центра шара (x, y) и вектор
         // его скорости (vx, vy)
-        stream >> x >> y >> vx >> vy;
-        // Читаем три составляющие цвета шара
-        stream >> red >> green >> blue;
-        // Читаем радиус шара
-        stream >> radius;
-        // Читаем свойство шара isCollidable, которое
-        // указывает, требуется ли обрабатывать пересечение
-        // шаров как столкновение. Если true - требуется.
-        // В базовой части задания этот параметр
-        stream >> std::boolalpha >> isCollidable;
+        // stream >> x >> y >> vx >> vy;
+        // // Читаем три составляющие цвета шара
+        // stream >> red >> green >> blue;
+        // // Читаем радиус шара
+        // stream >> radius;
+        // // Читаем свойство шара isCollidable, которое
+        // // указывает, требуется ли обрабатывать пересечение
+        // // шаров как столкновение. Если true - требуется.
+        // // В базовой части задания этот параметр
+        // stream >> std::boolalpha >> isCollidable;
+
 
         // TODO: место для доработки.
         // Здесь не хватает самого главного - создания
         // объекта класса Ball со свойствами, прочитанными
         // выше, и его помещения в контейнер balls
-
         // После того как мы каким-то образом
         // сконструируем объект Ball ball;
         // добавьте его в конец контейнера вызовом
         // balls.push_back(ball);
+        
+        
     }
 }
 
@@ -79,9 +80,13 @@ void World::show(Painter& painter) const {
     painter.draw(topLeft, bottomRight, Color(1, 1, 1));
 
     // Вызываем отрисовку каждого шара
+    for (const Dust& dust : dusts_){
+        dust.draw(painter);
+    }
     for (const Ball& ball : balls) {
         ball.draw(painter);
     }
+
 }
 
 /// @brief Обновляет состояние мира
@@ -106,5 +111,23 @@ void World::update(double time) {
     const auto ticks = static_cast<size_t>(std::floor(time / timePerTick));
     restTime = time - double(ticks) * timePerTick;
 
-    physics.update(balls, ticks);
+    try{
+        physics.update(balls, dusts_, ticks);
+    } catch (std::exception& ex) {
+        std::cerr << ex.what() << std::endl;
+    }
 }
+
+std::vector<Dust> randomDusts(const Point& center){
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> distrib(2, 5);
+    int rand = distrib(gen);
+    std::vector<Dust> dusts;
+    for (int i = 0; i < rand; i++){
+        dusts.push_back(randomDust(center));
+    }
+    return{dusts};
+}
+
+//TODO надо добавить спавн пыли в world, чтобы оно регалось сразу в world.

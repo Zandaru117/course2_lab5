@@ -1,7 +1,8 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.12)
 project(physics)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CPACK_PACKAGE_VERSION "1.0.0")
 
 # Пытаемся найти предустановленный SFML
 find_package(SFML COMPONENTS graphics)
@@ -32,7 +33,7 @@ if (MSVC)
 endif ()
 
 add_executable(physics
-        main.cpp World.cpp Ball.cpp Physics.cpp Color.cpp Painter.cpp
+        main.cpp World.cpp Ball.cpp Physics.cpp Color.cpp Painter.cpp Dust.cpp
         black_box/Application.cpp black_box/View.cpp black_box/PainterImpl.cpp)
 target_link_libraries(physics PRIVATE sfml-graphics)
 
@@ -40,3 +41,29 @@ target_compile_options(physics PRIVATE
         $<$<CXX_COMPILER_ID:MSVC>:/W4>
         $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic>
         )
+
+if (MSVC)
+    target_compile_options(physics PRIVATE
+        /W4
+    )
+else ()
+    target_compile_options(physics PRIVATE
+        -Wall -Wextra -pedantic -Werror
+    )
+endif()
+
+
+if(UNIX)
+    set(CPACK_GENERATOR "DEB")
+else ()
+    set(CPACK_GENERATOR "ZIP")
+endif()
+
+
+set(CPACK_PACKAGE_VERSION_MAJOR "${PROJECT_VERSION_MAJOR}")
+set(CPACK_PACKAGE_VERSION_MINOR "${PROJECT_VERSION_MINOR}")
+set(CPACK_PACKAGE_VERSION_PATCH "${PROJECT_VERSION_PATCH}")
+
+set(CPACK_PACKAGE_CONTACT example@example.com)
+
+include(CPack)
