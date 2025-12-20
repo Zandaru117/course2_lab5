@@ -1,7 +1,8 @@
 #include "World.h"
 #include "Painter.h"
-#include <fstream>
 #include "Dust.h"
+
+#include <fstream>
 #include <iostream>
 
 // Длительность одного тика симуляции.
